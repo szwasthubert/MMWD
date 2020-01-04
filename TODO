@@ -1,0 +1,20 @@
+Parameters to tune:
+- renewability bonus
+- taboo list time
+- neighborhood probability
+- generated intervals number
+
+
+
+Power requirements taken from:
+https://www.kaggle.com/robikscube/hourly-energy-consumption
+
+https://engineering.stackexchange.com/questions/8920/working-hours-of-power-plant-generators
+
+Wind turbine power : <12 MW
+Coal generator : 350 MW (average), 800 MW (huge)
+Solar Farm : 5-550 MW
+Nuclear Power Plant : 1000 MW
+Hydro Plant : 100-300 MW
+Natural gas systems : 600-700 MW
+Oil : 400-700 MW
