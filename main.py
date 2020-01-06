@@ -1,11 +1,12 @@
 from Dane import *
 import matplotlib.pyplot as plt
 import numpy as np
+
 from random import random
 
 ##Read data from file
-data_generators = open('data/2018_8_generators.csv','rt')
-data_requirements = open('data/2018_8.csv','rt')
+data_generators = open('data/2018_7_generators.csv','rt')
+data_requirements = open('data/2018_7.csv','rt')
 
 power_requirement = np.loadtxt(data_requirements)
 
@@ -22,12 +23,16 @@ for i in range(1,len(generators_param)):
 
 taboo_list = {'economically': [], 'renewably': [], 'more_power': []}
 
+
+
 work_matrix = np.array(np.random.randint(0,2,size=(len(generators),len(power_requirement))))
 renewable_quota = 0.3
 penalty = 50
 grid_cost = 150
 
 generators = list(generators)
+##Generator list sorting
+generators.sort(key=lambda generator: generator.production_to_cost_ratio,reverse=True)
 
 #Starting solution
 solution = Solution(generators, work_matrix, renewable_quota, penalty, grid_cost, power_requirement)
@@ -35,7 +40,7 @@ best_solution = solution
 best_cost = solution.calculate_cost()[0]
 best_cost_vector = [best_cost]
 
-for i in range(1000):
+for j in range(10):
     solution = solution.generate_neighborhood(taboo_list)
     solution_cost = solution.calculate_cost()[0]
     if solution_cost <= best_cost:
@@ -57,10 +62,11 @@ for i in range(1000):
              del value[i]
 
     best_cost_vector.append(best_cost)
+    print("Iteracja nr: ", j)
+    input()
 
 plt.plot(best_cost_vector)
 plt.show()
-plt.savefig('figures/fig_1.png')
 
 
 

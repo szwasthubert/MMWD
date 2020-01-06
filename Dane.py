@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List
 from random import random
+import datetime
 
 #TODO: vectorize everything
 
@@ -35,6 +36,7 @@ class Solution:
             raise ValueError('time data size mismatch')
 
     def calculate_cost(self):
+        print("Cost calc beginning: ", datetime.datetime.now())
         cost = 0
         produced_total_energy = 0
         produced_renewable_energy = 0
@@ -60,13 +62,12 @@ class Solution:
 
         if renewable_ratio< self.renewable_quota:
             cost += self.penalty
-
+        print("Cost calc end: ", datetime.datetime.now())
         return cost, underproduction/np.sum(self.power_requirement), renewable_ratio
 
-    def generate_neighborhood(self, taboo_list: dict, timeout :int  = 2):
+    def generate_neighborhood(self, taboo_list: dict, timeout :int  = 10):
 
         def generate_neighborhood_economically(self: Solution, taboo_list,timeout):
-            self.generators.sort(key=lambda generator: generator.production_to_cost_ratio, reverse=True)
 
             best_generator = self.generators[0]
             i = 0
@@ -106,8 +107,9 @@ class Solution:
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
                                     self.grid_cost, self.power_requirement)
-                if solution.calculate_cost()[0] <= best_cost:
-                    best_cost = solution.calculate_cost()[0]
+                solution_cost = solution.calculate_cost()[0]
+                if solution_cost <= best_cost:
+                    best_cost = solution_cost
                     best_solution = solution
 
             return best_solution
@@ -116,7 +118,6 @@ class Solution:
         def generate_neighborhood_renewably(self, taboo_list,timeout):
 
             renewable_generators = [generator for generator in self.generators if generator.renewable]
-            renewable_generators.sort(key=lambda generator: generator.production_to_cost_ratio, reverse=True)
             best_generator = renewable_generators[0]
             i=0
 
@@ -141,8 +142,9 @@ class Solution:
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
                                     self.grid_cost, self.power_requirement)
-                if solution.calculate_cost()[0] <= best_cost:
-                    best_cost = solution.calculate_cost()[0]
+                solution_cost = solution.calculate_cost()[0]
+                if solution_cost <= best_cost:
+                    best_cost = solution_cost
                     best_solution = solution
 
             return best_solution
@@ -180,8 +182,9 @@ class Solution:
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
                                     self.grid_cost, self.power_requirement)
-                if solution.calculate_cost()[0] <= best_cost:
-                    best_cost = solution.calculate_cost()[0]
+                solution_cost = solution.calculate_cost()[0]
+                if solution_cost <= best_cost:
+                    best_cost = solution_cost
                     best_solution = solution
 
             return best_solution
@@ -211,33 +214,36 @@ class Solution:
 
 def generate_random_intervals(minimal_working_time, time_size, interval_quantity):
 
-    interval_beginning = 0;
-    interval_duration = 0;
+    try:
+        interval_beginning = 0;
+        interval_duration = 0;
 
-    if minimal_working_time == time_size:
-        interval_beginning = 0
-        interval_duration = 1
-    else:
-        position = np.random.randint(0, time_size - minimal_working_time + 1)
-        if position + minimal_working_time == time_size:
-            interval_beginning = position
-            interval_duration = minimal_working_time
-        else:
-            nterval_beginning = position
-            interval_duration = np.random.randint(minimal_working_time, time_size - position + 2)
-
-
-    random_intervals = np.array([[interval_beginning,interval_duration]]) #TODO append -> concatenate
-
-    for i in range(interval_quantity-1):
         if minimal_working_time == time_size:
-            random_intervals=np.append(random_intervals,np.array([[0,1]]),axis=0)
+            interval_beginning = 0
+            interval_duration = 1
         else:
             position = np.random.randint(0, time_size - minimal_working_time + 1)
             if position + minimal_working_time == time_size:
-                random_intervals = np.append(random_intervals,[[position,minimal_working_time]],axis=0)
+                interval_beginning = position
+                interval_duration = minimal_working_time
             else:
-                random_intervals = np.append(random_intervals,[[position, np.random.randint(minimal_working_time, time_size - position+2)]], axis=0)
+                nterval_beginning = position
+                interval_duration = np.random.randint(minimal_working_time, time_size - position + 2)
+
+
+        random_intervals = np.array([[interval_beginning,interval_duration]]) #TODO append -> concatenate
+
+        for i in range(interval_quantity-1):
+            if minimal_working_time == time_size:
+                random_intervals=np.append(random_intervals,np.array([[0,1]]),axis=0)
+            else:
+                position = np.random.randint(0, time_size - minimal_working_time + 1)
+                if position + minimal_working_time == time_size:
+                    random_intervals = np.append(random_intervals,[[position,minimal_working_time]],axis=0)
+                else:
+                    random_intervals = np.append(random_intervals,[[position, np.random.randint(minimal_working_time, time_size - position+2)]], axis=0)
+    except ValueError:
+        random_intervals = np.array([(0,time_size)])
 
     return random_intervals
 
