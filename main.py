@@ -1,29 +1,21 @@
 from Dane import *
 import matplotlib.pyplot as plt
+import pandas as pd
 
+
+##Read data from file
+generators_param = pd.read_csv('data/2018_8_generators.csv', sep = ' ')
+
+for i in range(0,len(generators_param)):
+    generators_param.append(Generator(generators_param[i,3:],generators_param[i,2],generators_param[i,1],
+                                      generators_param[i,0],i))
 taboo_list = {'economically': [], 'renewably': [], 'more_power': []}
+generators = []
+work_matrix = []
 
-
-type_1_power = np.array([4, 4, 4])
-type_2_power = np.array([10, 0, 10])
-type_3_power = np.array([3, 3, 3])
-
-gen_1 = Generator(type_1_power, 250, 50, 2, False, 0)
-gen_2 = Generator(type_2_power, 100, 70, 1, True, 1)
-gen_3 = Generator(type_2_power, 100, 70, 1, True, 2)
-gen_4 = Generator(type_3_power, 40, 10, 1, False, 3)
-gen_5 = Generator(type_3_power, 40, 10, 1, False, 4)
-
-generators = [gen_1, gen_2, gen_3, gen_4, gen_5]
-work_matrix = np.array([[1,1,0],
-                        [1,0,1],
-                        [0,0,1],
-                        [0,1,1],
-                        [1,1,1]])
-
-renewable_quota = 0.2
+renewable_quota = 0.3
 penalty = 50
-grid_cost = 140
+grid_cost = 150
 power_requirement = np.array([12, 8, 10])
 
 #Starting solution

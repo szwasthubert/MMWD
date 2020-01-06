@@ -71,25 +71,18 @@ class Solution:
             best_generator = self.generators[0]
             i = 0
 
-            # Aspiration criterion
-            try:
-                print(best_generator.ID)
-                while best_generator.ID in (x[0] for x in taboo_list['economically']) and i!=len(self.generators):
-                    i+=1
-                    best_generator = self.generators[i]
-            except StopIteration:  # Everything in taboo list
-                pass
+            while best_generator.ID in (x[0] for x in taboo_list['economically']) and i!=len(self.generators):
+                i+=1
+                best_generator = self.generators[i]
 
             worst_generator = self.generators[-1]
             j=0
 
             # Aspiration criterion
-            try:
-                while worst_generator.ID in (x[0] for x in taboo_list['economically']) and j!=len(self.generators):
-                    j+=1
-                    worst_generator = self.generators[-j-1]
-            except StopIteration:  # Everything in taboo list
-                pass
+            while worst_generator.ID in (x[0] for x in taboo_list['economically']) and j!=len(self.generators):
+                j+=1
+                worst_generator = self.generators[-j-1]
+
             if worst_generator.ID == best_generator.ID:
                 raise Exception('Taboo list forbids for too long')  # TODO: define exception
 
@@ -127,13 +120,10 @@ class Solution:
             best_generator = renewable_generators[0]
             i=0
 
-            # Aspiration criterion
-            try:
-                while best_generator.ID in (x[0] for x in taboo_list['renewably']) and i!=len(renewable_generators):
-                    i+=1
-                    best_generator = renewable_generators[i]
-            except StopIteration:  # Everything in taboo list
-                pass
+            while best_generator.ID in (x[0] for x in taboo_list['renewably']) and i!=len(renewable_generators):
+                i+=1
+                best_generator = renewable_generators[i]
+
             taboo_list['renewably'].append([best_generator.ID, timeout])
 
             intervals = generate_random_intervals_renewable(best_generator.minimal_working_time,
@@ -166,12 +156,9 @@ class Solution:
             i = 0
 
             # Aspiration criterion
-            try:
-                while best_generator.ID in (x[0] for x in taboo_list['more_power']) and i!=len(self.generators):
-                    i+=1
-                    best_generator = self.generators[i]
-            except StopIteration:  # Everything in taboo list
-                pass
+            while best_generator.ID in (x[0] for x in taboo_list['more_power']) and i!=len(self.generators):
+                i+=1
+                best_generator = self.generators[i]
 
             taboo_list['more_power'].append([best_generator.ID, timeout])
 
