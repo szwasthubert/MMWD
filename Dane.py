@@ -65,7 +65,7 @@ class Solution:
 
     def generate_neighborhood(self, taboo_list: dict, timeout :int  = 2):
 
-        def generate_neighborhood_economically(self: Solution, taboo_list):
+        def generate_neighborhood_economically(self: Solution, taboo_list,timeout):
             self.generators.sort(key=lambda generator: generator.production_to_cost_ratio, reverse=True)
 
             best_generator = self.generators[0]
@@ -141,8 +141,8 @@ class Solution:
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
                                     self.grid_cost, self.power_requirement)
-                if solution.calculate_cost() <= best_cost:
-                    best_cost = solution
+                if solution.calculate_cost()[0] <= best_cost:
+                    best_cost = solution.calculate_cost()[0]
                     best_solution = solution
 
             return best_solution
@@ -152,7 +152,7 @@ class Solution:
 
             self.generators.sort(key=lambda generator: generator.production_to_cost_ratio+int(generator.renewable)*renewability_bonus,
                                  reverse=True)
-            best_generator = self.generator[0]
+            best_generator = self.generators[0]
             i = 0
 
             # Aspiration criterion
@@ -180,8 +180,8 @@ class Solution:
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
                                     self.grid_cost, self.power_requirement)
-                if solution.calculate_cost() <= best_cost:
-                    best_cost = solution
+                if solution.calculate_cost()[0] <= best_cost:
+                    best_cost = solution.calculate_cost()[0]
                     best_solution = solution
 
             return best_solution
@@ -202,11 +202,11 @@ class Solution:
         random_value = random()
 
         if random_value < probabilities_coefficients['economically']:
-            return generate_neighborhood_economically(self,taboo_list)
+            return generate_neighborhood_economically(self,taboo_list,timeout)
         elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably']:
-            return generate_neighborhood_renewably(self,taboo_list)
+            return generate_neighborhood_renewably(self,taboo_list,timeout)
         else:
-            return generate_more_power(self,taboo_list)
+            return generate_more_power(self,taboo_list,timeout,renewability_bonus=200)
 
 
 def generate_random_intervals(minimal_working_time, time_size, interval_quantity):
@@ -227,7 +227,7 @@ def generate_random_intervals(minimal_working_time, time_size, interval_quantity
             interval_duration = np.random.randint(minimal_working_time, time_size - position + 2)
 
 
-    random_intervals = np.array([[interval_beginning,interval_duration]])
+    random_intervals = np.array([[interval_beginning,interval_duration]]) #TODO append -> concatenate
 
     for i in range(interval_quantity-1):
         if minimal_working_time == time_size:
@@ -235,9 +235,9 @@ def generate_random_intervals(minimal_working_time, time_size, interval_quantity
         else:
             position = np.random.randint(0, time_size - minimal_working_time + 1)
             if position + minimal_working_time == time_size:
-                np.append(random_intervals,[[position,minimal_working_time]],axis=0)
+                random_intervals = np.append(random_intervals,[[position,minimal_working_time]],axis=0)
             else:
-                np.append(random_intervals,[[position, np.random.randint(minimal_working_time, time_size - position+2)]], axis=0)
+                random_intervals = np.append(random_intervals,[[position, np.random.randint(minimal_working_time, time_size - position+2)]], axis=0)
 
     return random_intervals
 

@@ -1,22 +1,33 @@
 from Dane import *
 import matplotlib.pyplot as plt
-import pandas as pd
-
+import numpy as np
+from random import random
 
 ##Read data from file
-generators_param = pd.read_csv('data/2018_8_generators.csv', sep = ' ')
+data_generators = open('data/2018_8_generators.csv','rt')
+data_requirements = open('data/2018_8.csv','rt')
 
-for i in range(0,len(generators_param)):
-    generators_param.append(Generator(generators_param[i,3:],generators_param[i,2],generators_param[i,1],
-                                      generators_param[i,0],i))
+power_requirement = np.loadtxt(data_requirements)
+
+generators_param = np.loadtxt(data_generators, delimiter=' ')
+
+print(np.array(generators_param[0]))
+generators = np.array([Generator(np.array(generators_param[0,5:]),int(generators_param[0,4]),int(generators_param[0,3]),int(generators_param[0,2]),
+                                      bool(generators_param[0,1]),int(0))])
+
+for i in range(1,len(generators_param)):
+    generators = np.append(generators,np.array([Generator(np.array(generators_param[i,5:]),int(generators_param[i,4]),int(generators_param[i,3]),int(generators_param[i,2]),
+                                   bool(generators_param[i,1]),int(i))]),axis=0)
+
+
 taboo_list = {'economically': [], 'renewably': [], 'more_power': []}
-generators = []
-work_matrix = []
 
+work_matrix = np.array(np.random.randint(0,2,size=(len(generators),len(power_requirement))))
 renewable_quota = 0.3
 penalty = 50
 grid_cost = 150
-power_requirement = np.array([12, 8, 10])
+
+generators = list(generators)
 
 #Starting solution
 solution = Solution(generators, work_matrix, renewable_quota, penalty, grid_cost, power_requirement)
@@ -49,7 +60,7 @@ for i in range(1000):
 
 plt.plot(best_cost_vector)
 plt.show()
-
+plt.savefig('figures/fig_1.png')
 
 
 
