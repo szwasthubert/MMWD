@@ -13,7 +13,7 @@ def get_month(date):
 
 vget_month = np.vectorize(get_month)
 
-data = pd.read_csv(r"C:\Users\Duch Kraftu\Documents\MMWD\MMWD\AEP_hourly.csv")
+data = pd.read_csv(r"data\AEP_hourly.csv")
 
 dates = []
 for index, date in enumerate(data['Datetime']):
