@@ -63,7 +63,7 @@ class Solution:
 
         return cost, underproduction/np.sum(self.power_requirement), renewable_ratio
 
-    def generate_neighborhood(self, taboo_list: dict, timeout :int  = 5):
+    def generate_neighborhood(self, taboo_list: dict, timeout :int  = 2):
 
         def generate_neighborhood_economically(self: Solution, taboo_list):
             self.generators.sort(key=lambda generator: generator.production_to_cost_ratio, reverse=True)
@@ -79,16 +79,15 @@ class Solution:
                     best_generator = self.generators[i]
             except StopIteration:  # Everything in taboo list
                 pass
-            reversed_generators = reversed(self.generators)
 
-            worst_generator = reversed_generators[0]
+            worst_generator = self.generators[-1]
             j=0
 
             # Aspiration criterion
             try:
                 while worst_generator.ID in (x[0] for x in taboo_list['economically']) and j!=len(self.generators):
                     j+=1
-                    worst_generator = reversed_generators[j]
+                    worst_generator = self.generators[-j-1]
             except StopIteration:  # Everything in taboo list
                 pass
             if worst_generator.ID == best_generator.ID:
