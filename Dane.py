@@ -30,13 +30,13 @@ class Solution:
         self.penalty = penalty
         self.grid_cost = grid_cost
         self.power_requirement = power_requirement
+        self.total_energy_required = np.sum(power_requirement)
         if len(generators) != work_matrix.shape[0]:
             raise ValueError('generator data size mismatch')
         if len(power_requirement) != work_matrix.shape[1]:
             raise ValueError('time data size mismatch')
 
     def calculate_cost(self):
-        print("Cost calc beginning: ", datetime.datetime.now())
         cost = 0
         produced_total_energy = 0
         produced_renewable_energy = 0
@@ -54,43 +54,42 @@ class Solution:
                     generator_state = 0
 
         ##Grid power purchase in the case of deficit from generator derrived electicity
-        underproduction = np.max([np.sum(self.power_requirement) - np.sum(produced_total_energy),0])
+        underproduction = np.max([self.total_energy_required - np.sum(produced_total_energy), 0])
         cost += underproduction * self.grid_cost
 
         ##Checking if renewability ratio requirement is met, otherwise adding to penalty
         renewable_ratio = np.sum(produced_renewable_energy)/np.sum(produced_total_energy)
 
-        if renewable_ratio< self.renewable_quota:
+        if renewable_ratio < self.renewable_quota:
             cost += self.penalty
-        print("Cost calc end: ", datetime.datetime.now())
-        return cost, underproduction/np.sum(self.power_requirement), renewable_ratio
+        return cost, underproduction/self.total_energy_required, renewable_ratio
 
-    def generate_neighborhood(self, taboo_list: dict, timeout :int  = 10):
+    def generate_neighborhood(self, taboo_list: dict, timeout:int=10):
 
-        def generate_neighborhood_economically(self: Solution, taboo_list,timeout):
+        def generate_neighborhood_economically(self: Solution, taboo_list, timeout):
 
             best_generator = self.generators[0]
             i = 0
 
-            while best_generator.ID in (x[0] for x in taboo_list['economically']) and i!=len(self.generators):
-                i+=1
+            while best_generator.ID in (x[0] for x in taboo_list['economically']) and i != len(self.generators):
+                i += 1
                 best_generator = self.generators[i]
 
             worst_generator = self.generators[-1]
-            j=0
+            j = 0
 
             # Aspiration criterion
             while worst_generator.ID in (x[0] for x in taboo_list['economically']) and j!=len(self.generators):
-                j+=1
+                j += 1
                 worst_generator = self.generators[-j-1]
 
             if worst_generator.ID == best_generator.ID:
-                raise Exception('Taboo list forbids for too long')  # TODO: define exception
+                raise Exception('Taboo list forbids for too long')
 
             taboo_list['economically'].extend([[best_generator.ID, timeout], [worst_generator.ID, timeout]])
             if best_generator.renewable:
                 intervals = generate_random_intervals_renewable(best_generator.minimal_working_time,
-                                                                self.work_matrix.shape[0],4,
+                                                                self.work_matrix.shape[0], 4,
                                                                 best_generator.power_production)
             else:
                 intervals = generate_random_intervals(best_generator.minimal_working_time,self.work_matrix.shape[0],4)
@@ -98,7 +97,7 @@ class Solution:
             new_work_matrices = []
             for interval in intervals:
                 new_work_matrix = np.copy(self.work_matrix)
-                new_work_matrix[best_generator.ID,interval[0]:interval[0]+interval[1]] = 1
+                new_work_matrix[best_generator.ID, interval[0]:interval[0]+interval[1]] = 1
                 new_work_matrix[worst_generator.ID, interval[0]:interval[0] + interval[1]] = 0
                 new_work_matrices.append(new_work_matrix)
 
@@ -205,11 +204,11 @@ class Solution:
         random_value = random()
 
         if random_value < probabilities_coefficients['economically']:
-            return generate_neighborhood_economically(self,taboo_list,timeout)
+            return generate_neighborhood_economically(self, taboo_list, timeout)
         elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably']:
-            return generate_neighborhood_renewably(self,taboo_list,timeout)
+            return generate_neighborhood_renewably(self, taboo_list, timeout)
         else:
-            return generate_more_power(self,taboo_list,timeout,renewability_bonus=200)
+            return generate_more_power(self, taboo_list, timeout, renewability_bonus=200)
 
 
 def generate_random_intervals(minimal_working_time, time_size, interval_quantity):
@@ -259,10 +258,14 @@ def generate_random_intervals_renewable(minimal_working_time, time_size, interva
 
     interval_sum = []
 
+    generated_neighbours = 0
     for start, length in zip(starts, lengths):
         interval_set = generate_random_intervals(minimal_working_time, length, int(interval_quantity / len(starts)))
-        interval_set[:,0] += start
+        interval_set[:, 0] += start
         interval_sum.extend(list(interval_set))
+        generated_neighbours += 1
+        if generated_neighbours > 10:
+            break
     interval_sum = np.array(interval_sum)
 
     return interval_sum
