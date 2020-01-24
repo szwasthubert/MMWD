@@ -53,25 +53,31 @@ class Solution:
                 if generator_state == 1 and state == 0:
                     generator_state = 0
 
-        ##Grid power purchase in the case of deficit from generator derrived electicity
-        underproduction = np.max([self.total_energy_required - np.sum(produced_total_energy), 0])
+        overall_production = np.sum(produced_total_energy)
+        # Grid power purchase in the case of deficit from generator derived electicity
+        underproduction = np.max([self.total_energy_required - overall_production, 0])
         cost += underproduction * self.grid_cost
 
-        ##Checking if renewability ratio requirement is met, otherwise adding to penalty
-        renewable_ratio = np.sum(produced_renewable_energy)/np.sum(produced_total_energy)
+        # Checking if renewability ratio requirement is met, otherwise adding to penalty
+        if overall_production != 0:
+            renewable_ratio = np.sum(produced_renewable_energy)/overall_production
+        else:
+            renewable_ratio = 0
 
         if renewable_ratio < self.renewable_quota:
             cost += self.penalty
         return cost, underproduction/self.total_energy_required, renewable_ratio
 
-    def generate_neighborhood(self, taboo_list: dict, timeout:int=10):
+    def generate_neighborhood(self, taboo_list: dict, timeout:int=20):
 
         def generate_neighborhood_economically(self: Solution, taboo_list, timeout):
 
+            taboo_forbids = [0 for i in range(len(self.generators))]
             best_generator = self.generators[0]
             i = 0
 
             while best_generator.ID in (x[0] for x in taboo_list['economically']) and i != len(self.generators):
+                taboo_forbids[best_generator.ID] += 1
                 i += 1
                 best_generator = self.generators[i]
 
@@ -79,7 +85,8 @@ class Solution:
             j = 0
 
             # Aspiration criterion
-            while worst_generator.ID in (x[0] for x in taboo_list['economically']) and j!=len(self.generators):
+            while worst_generator.ID in (x[0] for x in taboo_list['economically']) and j != len(self.generators):
+                taboo_forbids[worst_generator.ID] += 1
                 j += 1
                 worst_generator = self.generators[-j-1]
 
@@ -111,17 +118,19 @@ class Solution:
                     best_cost = solution_cost
                     best_solution = solution
 
-            return best_solution
+            return best_solution, 'economically', np.array(taboo_forbids)
 
 
         def generate_neighborhood_renewably(self, taboo_list,timeout):
 
+            taboo_forbids = [0 for i in range(len(self.generators))]
             renewable_generators = [generator for generator in self.generators if generator.renewable]
             best_generator = renewable_generators[0]
-            i=0
+            i = 0
 
-            while best_generator.ID in (x[0] for x in taboo_list['renewably']) and i!=len(renewable_generators):
-                i+=1
+            while best_generator.ID in (x[0] for x in taboo_list['renewably']) and i != len(renewable_generators):
+                taboo_forbids[best_generator.ID] += 1
+                i += 1
                 best_generator = renewable_generators[i]
 
             taboo_list['renewably'].append([best_generator.ID, timeout])
@@ -146,7 +155,7 @@ class Solution:
                     best_cost = solution_cost
                     best_solution = solution
 
-            return best_solution
+            return best_solution, 'renewably', np.array(taboo_forbids)
 
 
         def generate_more_power(self, taboo_list, timeout, renewability_bonus):
@@ -156,9 +165,11 @@ class Solution:
             best_generator = self.generators[0]
             i = 0
 
+            taboo_forbids = [0 for i in range(len(self.generators))]
             # Aspiration criterion
-            while best_generator.ID in (x[0] for x in taboo_list['more_power']) and i!=len(self.generators):
-                i+=1
+            while best_generator.ID in (x[0] for x in taboo_list['more_power']) and i != len(self.generators):
+                taboo_forbids[best_generator.ID] += 1
+                i += 1
                 best_generator = self.generators[i]
 
             taboo_list['more_power'].append([best_generator.ID, timeout])
@@ -186,7 +197,7 @@ class Solution:
                     best_cost = solution_cost
                     best_solution = solution
 
-            return best_solution
+            return best_solution, 'more power', np.array(taboo_forbids)
 
         #TODO:consolidate intervals
 
@@ -214,8 +225,8 @@ class Solution:
 def generate_random_intervals(minimal_working_time, time_size, interval_quantity):
 
     try:
-        interval_beginning = 0;
-        interval_duration = 0;
+        interval_beginning = 0
+        interval_duration = 0
 
         if minimal_working_time == time_size:
             interval_beginning = 0
@@ -226,7 +237,7 @@ def generate_random_intervals(minimal_working_time, time_size, interval_quantity
                 interval_beginning = position
                 interval_duration = minimal_working_time
             else:
-                nterval_beginning = position
+                interval_beginning = position
                 interval_duration = np.random.randint(minimal_working_time, time_size - position + 2)
 
 
@@ -258,14 +269,17 @@ def generate_random_intervals_renewable(minimal_working_time, time_size, interva
 
     interval_sum = []
 
-    generated_neighbours = 0
-    for start, length in zip(starts, lengths):
+    # generated_neighbours = 0
+    random_indices = [np.random.randint(0, len(starts)) for i in range(50)]
+    starts_to_use = starts[random_indices]
+    lengths_to_use = lengths[random_indices]
+    for start, length in zip(starts_to_use, lengths_to_use):
         interval_set = generate_random_intervals(minimal_working_time, length, int(interval_quantity / len(starts)))
         interval_set[:, 0] += start
         interval_sum.extend(list(interval_set))
-        generated_neighbours += 1
-        if generated_neighbours > 10:
-            break
+        # generated_neighbours += 1
+        # if generated_neighbours > 50:
+        #     break
     interval_sum = np.array(interval_sum)
 
     return interval_sum

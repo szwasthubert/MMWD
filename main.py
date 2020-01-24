@@ -27,25 +27,46 @@ for i in range(1, len(generators_param)):
 
 taboo_list = {'economically': [], 'renewably': [], 'more_power': []}
 
-work_matrix = np.array(np.random.randint(0, 2, size=(len(generators), len(power_requirement))))
+#work_matrix = np.array(np.random.randint(0, 2, size=(len(generators), len(power_requirement))))
+work_matrix = np.zeros((len(generators), len(power_requirement)))
 renewable_quota = 0.3
 penalty = 1e8
-grid_cost = 150
+grid_cost = 200
+iterations = 1000
 
 generators = list(generators)
 
 # Generator list sorting
 generators.sort(key=lambda generator: generator.production_to_cost_ratio, reverse=True)
 
+
 # Starting solution
 solution = Solution(generators, work_matrix, renewable_quota, penalty, grid_cost, power_requirement)
 best_solution = solution
 best_cost = solution.calculate_cost()[0]
 best_cost_vector = [best_cost]
+plot_data = {'neighbourhood': {'economically': 0,
+                               'renewably': 0,
+                               'more power': 0},
+             'taboo forbidden': {'economically': np.zeros(len(generators)),
+                                 'renewably': np.zeros(len(generators)),
+                                 'more power': np.zeros(len(generators))},
+             'renewable energy ratio': [],
+             'underproduction percent': [],
+             'active generators': [0 for i in range(iterations)]
+             }
 
-for j in range(100):
-    solution = solution.generate_neighborhood(taboo_list)
-    solution_cost = solution.calculate_cost()[0]
+for j in range(iterations):
+
+    solution, used_neighbourhood, taboo_forbids = solution.generate_neighborhood(taboo_list)
+    plot_data['neighbourhood'][used_neighbourhood] += 1
+    plot_data['taboo forbidden'][used_neighbourhood] += taboo_forbids
+    solution_cost, underproduction_ratio, renewable_ratio = solution.calculate_cost()
+    plot_data['renewable energy ratio'].append(renewable_ratio)
+    plot_data['underproduction percent'].append(underproduction_ratio)
+    for row in best_solution.work_matrix:
+        if np.any(row):
+            plot_data['active generators'][j] += 1
     if solution_cost <= best_cost:
         best_solution = solution
         best_cost = solution_cost
@@ -72,4 +93,10 @@ print('stopping operation: ', stop)
 print('time taken: ', stop - start)
 
 plt.plot(best_cost_vector)
+plt.show()
+plt.plot(plot_data['active generators'])
+plt.show()
+plt.plot(plot_data['renewable energy ratio'])
+plt.show()
+plt.plot(plot_data['underproduction percent'])
 plt.show()
