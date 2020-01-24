@@ -66,7 +66,9 @@ class Solution:
 
         if renewable_ratio < self.renewable_quota:
             cost += self.penalty
-        return cost, underproduction/self.total_energy_required, renewable_ratio
+
+        overproduction = np.max([np.sum(produced_total_energy) - self.total_energy_required , 0])
+        return cost, underproduction/np.sum(self.power_requirement), renewable_ratio, overproduction
 
     def generate_neighborhood(self, taboo_list: dict, timeout:int=20):
 
@@ -199,13 +201,54 @@ class Solution:
 
             return best_solution, 'more power', np.array(taboo_forbids)
 
-        #TODO:consolidate intervals
+        def too_much_power(self: Solution, taboo_list, timeout):
 
-        cost, underproduction, renewable_ratio = self.calculate_cost()
+            worst_generator = self.generators[-1]
+            i = len(self.generators) - 1
+            taboo_forbids = [0 for i in range(len(self.generators))]
+
+            while worst_generator.ID in (x[0] for x in taboo_list['too_much_power']) and i != -1:
+                taboo_forbids[worst_generator.ID] += 1
+                i -= 1
+                best_generator = self.generators[i]
+
+            if i == 0:
+                raise Exception('Taboo list forbids for too long')
+
+            taboo_list['too_much_power'].append([worst_generator.ID, timeout])
+
+            if worst_generator.renewable:
+                intervals = generate_random_intervals_renewable(worst_generator.minimal_working_time,
+                                                                self.work_matrix.shape[0], 4,
+                                                                worst_generator.power_production)
+            else:
+                intervals = generate_random_intervals(worst_generator.minimal_working_time,self.work_matrix.shape[0],4)
+
+            new_work_matrices = []
+            for interval in intervals:
+                new_work_matrix = np.copy(self.work_matrix)
+                new_work_matrix[worst_generator.ID, interval[0]:interval[0] + interval[1]] = 0
+                new_work_matrices.append(new_work_matrix)
+
+            best_cost = np.inf
+            best_solution = self
+            for matrix in new_work_matrices:
+                solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
+                                    self.grid_cost, self.power_requirement)
+                solution_cost = solution.calculate_cost()[0]
+                if solution_cost <= best_cost:
+                    best_cost = solution_cost
+                    best_solution = solution
+
+            return best_solution, 'too_much_power', np.array(taboo_forbids)
+
+
+        cost, underproduction, renewable_ratio, overproduction = self.calculate_cost()
 
         probabilities_coefficients = {'economically': 0.4,
                                       'renewably': max(0, self.renewable_quota - renewable_ratio)/self.renewable_quota,
-                                      'more_power': underproduction}
+                                      'more_power': underproduction,
+                                      'too_much_power': 2*np.arctan(4*max(0,1-overproduction))/np.pi}
 
         coefficients_sum = sum(probabilities_coefficients.values())
 
@@ -218,6 +261,8 @@ class Solution:
             return generate_neighborhood_economically(self, taboo_list, timeout)
         elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably']:
             return generate_neighborhood_renewably(self, taboo_list, timeout)
+        elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably'] + probabilities_coefficients['too_much_power']:
+            return too_much_power(self,taboo_list,timeout)
         else:
             return generate_more_power(self, taboo_list, timeout, renewability_bonus=200)
 

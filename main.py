@@ -25,7 +25,7 @@ for i in range(1, len(generators_param)):
                                                            bool(generators_param[i, 1]), int(i))]), axis=0)
 
 
-taboo_list = {'economically': [], 'renewably': [], 'more_power': []}
+taboo_list = {'economically': [], 'renewably': [], 'more_power': [], 'too_much_power': []}
 
 #work_matrix = np.array(np.random.randint(0, 2, size=(len(generators), len(power_requirement))))
 work_matrix = np.zeros((len(generators), len(power_requirement)))
@@ -56,17 +56,9 @@ plot_data = {'neighbourhood': {'economically': 0,
              'active generators': [0 for i in range(iterations)]
              }
 
-for j in range(iterations):
-
-    solution, used_neighbourhood, taboo_forbids = solution.generate_neighborhood(taboo_list)
-    plot_data['neighbourhood'][used_neighbourhood] += 1
-    plot_data['taboo forbidden'][used_neighbourhood] += taboo_forbids
-    solution_cost, underproduction_ratio, renewable_ratio = solution.calculate_cost()
-    plot_data['renewable energy ratio'].append(renewable_ratio)
-    plot_data['underproduction percent'].append(underproduction_ratio)
-    for row in best_solution.work_matrix:
-        if np.any(row):
-            plot_data['active generators'][j] += 1
+for j in range(100):
+    solution = solution.generate_neighborhood(taboo_list)
+    solution_cost = solution.calculate_cost()[0]
     if solution_cost <= best_cost:
         best_solution = solution
         best_cost = solution_cost
