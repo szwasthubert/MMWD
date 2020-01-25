@@ -22,9 +22,11 @@ class Generator:
 class Solution:
 
     def __init__(self, generators: List[Generator], work_matrix: np.ndarray,
-                 renewable_quota: float, penalty: int, grid_cost: int, power_requirement: np.ndarray):
+                 renewable_quota: float, penalty: int, grid_cost: int, power_requirement: np.ndarray,
+                 generators_for_renewable: List[Generator]):
 
         self.generators = generators
+        self.generators_for_renewable = generators_for_renewable
         self.work_matrix = work_matrix
         self.renewable_quota = renewable_quota
         self.penalty = penalty
@@ -70,7 +72,7 @@ class Solution:
         overproduction = np.max([np.sum(produced_total_energy) - self.total_energy_required , 0])
         return cost, underproduction/np.sum(self.power_requirement), renewable_ratio, overproduction
 
-    def generate_neighborhood(self, taboo_list: dict, timeout:int=20):
+    def generate_neighborhood(self, taboo_list: dict, timeout: int = 20):
 
         def generate_neighborhood_economically(self: Solution, taboo_list, timeout):
 
@@ -101,7 +103,7 @@ class Solution:
                                                                 self.work_matrix.shape[0], 4,
                                                                 best_generator.power_production)
             else:
-                intervals = generate_random_intervals(best_generator.minimal_working_time,self.work_matrix.shape[0],4)
+                intervals = generate_random_intervals(best_generator.minimal_working_time,self.work_matrix.shape[0], 20)
 
             new_work_matrices = []
             for interval in intervals:
@@ -114,7 +116,7 @@ class Solution:
             best_solution = self
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
-                                    self.grid_cost, self.power_requirement)
+                                    self.grid_cost, self.power_requirement, self.generators_for_renewable)
                 solution_cost = solution.calculate_cost()[0]
                 if solution_cost <= best_cost:
                     best_cost = solution_cost
@@ -151,7 +153,7 @@ class Solution:
             best_solution = self
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
-                                    self.grid_cost, self.power_requirement)
+                                    self.grid_cost, self.power_requirement, self.generators_for_renewable)
                 solution_cost = solution.calculate_cost()[0]
                 if solution_cost <= best_cost:
                     best_cost = solution_cost
@@ -160,19 +162,16 @@ class Solution:
             return best_solution, 'renewably', np.array(taboo_forbids)
 
 
-        def generate_more_power(self, taboo_list, timeout, renewability_bonus):
-
-            self.generators.sort(key=lambda generator: generator.production_to_cost_ratio+int(generator.renewable)*renewability_bonus,
-                                 reverse=True)
-            best_generator = self.generators[0]
+        def generate_more_power(self, taboo_list, timeout):
+            best_generator = self.generators_for_renewable[0]
             i = 0
 
-            taboo_forbids = [0 for i in range(len(self.generators))]
+            taboo_forbids = [0 for i in range(len(self.generators_for_renewable))]
             # Aspiration criterion
-            while best_generator.ID in (x[0] for x in taboo_list['more_power']) and i != len(self.generators):
+            while best_generator.ID in (x[0] for x in taboo_list['more_power']) and i != len(self.generators_for_renewable):
                 taboo_forbids[best_generator.ID] += 1
                 i += 1
-                best_generator = self.generators[i]
+                best_generator = self.generators_for_renewable[i]
 
             taboo_list['more_power'].append([best_generator.ID, timeout])
 
@@ -181,7 +180,7 @@ class Solution:
                                                                 self.work_matrix.shape[0], 2,
                                                                 best_generator.power_production)
             else:
-                intervals = generate_random_intervals(best_generator.minimal_working_time, self.work_matrix.shape[0], 2)
+                intervals = generate_random_intervals(best_generator.minimal_working_time, self.work_matrix.shape[0], 20)
 
             new_work_matrices = []
             for interval in intervals:
@@ -193,7 +192,7 @@ class Solution:
             best_solution = self
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
-                                    self.grid_cost, self.power_requirement)
+                                    self.grid_cost, self.power_requirement, self.generators_for_renewable)
                 solution_cost = solution.calculate_cost()[0]
                 if solution_cost <= best_cost:
                     best_cost = solution_cost
@@ -222,7 +221,7 @@ class Solution:
                                                                 self.work_matrix.shape[0], 4,
                                                                 worst_generator.power_production)
             else:
-                intervals = generate_random_intervals(worst_generator.minimal_working_time,self.work_matrix.shape[0],4)
+                intervals = generate_random_intervals(worst_generator.minimal_working_time,self.work_matrix.shape[0],20)
 
             new_work_matrices = []
             for interval in intervals:
@@ -234,7 +233,7 @@ class Solution:
             best_solution = self
             for matrix in new_work_matrices:
                 solution = Solution(self.generators, matrix, self.renewable_quota, self.penalty,
-                                    self.grid_cost, self.power_requirement)
+                                    self.grid_cost, self.power_requirement, self.generators_for_renewable)
                 solution_cost = solution.calculate_cost()[0]
                 if solution_cost <= best_cost:
                     best_cost = solution_cost
@@ -242,13 +241,12 @@ class Solution:
 
             return best_solution, 'too_much_power', np.array(taboo_forbids)
 
-
         cost, underproduction, renewable_ratio, overproduction = self.calculate_cost()
 
-        probabilities_coefficients = {'economically': 0.4,
+        probabilities_coefficients = {'economically': 0.3,
                                       'renewably': max(0, self.renewable_quota - renewable_ratio)/self.renewable_quota,
                                       'more_power': underproduction,
-                                      'too_much_power': 2*np.arctan(4*max(0,1-overproduction))/np.pi}
+                                      'too_much_power': 2*np.arctan(4*max(0, 1-overproduction))/np.pi if overproduction > 0 else 0}
 
         coefficients_sum = sum(probabilities_coefficients.values())
 
@@ -261,10 +259,11 @@ class Solution:
             return generate_neighborhood_economically(self, taboo_list, timeout)
         elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably']:
             return generate_neighborhood_renewably(self, taboo_list, timeout)
-        elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably'] + probabilities_coefficients['too_much_power']:
-            return too_much_power(self,taboo_list,timeout)
+        elif random_value < probabilities_coefficients['economically'] + probabilities_coefficients['renewably']\
+                + probabilities_coefficients['too_much_power']:
+            return too_much_power(self, taboo_list, timeout)
         else:
-            return generate_more_power(self, taboo_list, timeout, renewability_bonus=200)
+            return generate_more_power(self, taboo_list, timeout)
 
 
 def generate_random_intervals(minimal_working_time, time_size, interval_quantity):
@@ -284,6 +283,7 @@ def generate_random_intervals(minimal_working_time, time_size, interval_quantity
             else:
                 interval_beginning = position
                 interval_duration = np.random.randint(minimal_working_time, time_size - position + 2)
+                interval_duration = int(np.random.normal((time_size - position + 2 - minimal_working_time)*2/3 + position))
 
 
         random_intervals = np.array([[interval_beginning,interval_duration]]) #TODO append -> concatenate
@@ -319,14 +319,13 @@ def generate_random_intervals_renewable(minimal_working_time, time_size, interva
     starts_to_use = starts[random_indices]
     lengths_to_use = lengths[random_indices]
     for start, length in zip(starts_to_use, lengths_to_use):
-        interval_set = generate_random_intervals(minimal_working_time, length, int(interval_quantity / len(starts)))
+        interval_set = generate_random_intervals(minimal_working_time, length, 1)
         interval_set[:, 0] += start
         interval_sum.extend(list(interval_set))
         # generated_neighbours += 1
         # if generated_neighbours > 50:
         #     break
     interval_sum = np.array(interval_sum)
-
     return interval_sum
 
 
