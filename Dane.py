@@ -56,7 +56,7 @@ class Solution:
                     generator_state = 0
 
         overall_production = np.sum(produced_total_energy)
-        # Grid power purchase in the case of deficit from generator derived electicity
+        # Grid power purchase in the case of deficit from generator derived electricity
         underproduction = np.max([self.total_energy_required - overall_production, 0])
         cost += underproduction * self.grid_cost
 
@@ -246,7 +246,7 @@ class Solution:
         probabilities_coefficients = {'economically': 0.3,
                                       'renewably': max(0, self.renewable_quota - renewable_ratio)/self.renewable_quota,
                                       'more_power': underproduction,
-                                      'too_much_power': 2*np.arctan(4*max(0, 1-overproduction))/np.pi if overproduction > 0 else 0}
+                                      'too_much_power': 2*np.arctan(4*max(0, 1+overproduction))/np.pi if overproduction > 0 else 0}
 
         coefficients_sum = sum(probabilities_coefficients.values())
 
